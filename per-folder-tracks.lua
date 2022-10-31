@@ -1,6 +1,12 @@
---[[ If present, load and apply audio/sub tracks config from ./.mpv
-    On hotkey, write current settings to the file,
-    overwriting previous config, if any. ]]
+--[[
+    A script to automatically set audio and subtitles tracks on file load,
+    if a configuration file is present in the folder with the video file.
+    Also provides a hotkey to create the configuration file with currently selected tracks.
+
+    See https://github.com/bnfour/mpv-per-folder-tracks
+
+    bnfour, October 2022
+]]
 
 -- configuration
 hotkey = "y"
