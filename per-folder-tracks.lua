@@ -22,8 +22,8 @@ function on_load(event)
     local config = parse_config()
     if config ~= nil then
         local available_tracks = get_number_of_tracks()
-        try_set_track(config, audio_key, available_tracks.audio)
-        try_set_track(config, sub_key, available_tracks.sub)
+        try_set_property("aid", config[audio_key], available_tracks.audio)
+        try_set_property("sid", config[sub_key], available_tracks.sub)
     end
 end
 
@@ -31,16 +31,15 @@ end
 -- overwrites existing file
 function on_keypress(event)
     local f = io.open(file_name, "w")
-    f:write(string.format("%s %s\n", audio_key, get_current_value(audio_key)))
-    f:write(string.format("%s %s\n", sub_key, get_current_value(sub_key)))
-    f:close()
-    mp.osd_message("Stored audio+sub track selection")
-end
+    if f ~= nil then
+        f:write(string.format("%s %s\n", audio_key, mp.get_property("aid")))
+        f:write(string.format("%s %s\n", sub_key, mp.get_property("sid")))
+        f:close()
+        mp.osd_message("Stored audio+sub track selection")
+    else
+        mp.osd_message("Error writing file!")
+    end
 
--- gets the currently set value for a track of specified kind
--- returns "no" for disabled tracks, number (as seen in the UI) as a string
-function get_current_value(config_key)
-    return mp.get_property(get_mpv_property_name(config_key))
 end
 
 -- tries to parse the configuration file:
@@ -65,29 +64,16 @@ function parse_config()
     end
 end
 
--- silently fails if provided track is invalid
+-- silently does nothing if provided track is invalid
 -- TODO: consider returning some kind of error code to be verified by the caller,
 --   which may do something in that case (eg. showing error message on the OSD)
-function try_set_track(config_table, key, tracks_present)
-    local property = get_mpv_property_name(key)
-    if config_table[key] then
-        local value_to_set = config_table[key]
+function try_set_property(property, value, maximum)
+    if property ~= nil and value ~= nil then
         -- prevents switching to tracks with numbers higher than available in the file
         -- because overshoots like this turn audio/subtitles off
-        if value_to_set == "no" or tonumber(value_to_set) <= tracks_present then
-            mp.set_property(property, value_to_set)
+        if value == "no" or tonumber(value) <= maximum then
+            mp.set_property(property, value)
         end
-    end
-end
-
--- returns the mpv's property related to our configuration key:
--- "aid" for audio,
--- "sid" for subtitles (and anything else that is not audio configuration key)
-function get_mpv_property_name(key)
-    if key == audio_key then
-        return "aid"
-    else
-        return "sid"
     end
 end
 
