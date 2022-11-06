@@ -5,7 +5,7 @@
 
     See https://github.com/bnfour/mpv-per-folder-tracks
 
-    bnfour, October 2022
+    bnfour, October--November 2022
 ]]
 
 -- configuration
@@ -21,8 +21,9 @@ sub_key = "SUB"
 function on_load(event)
     local config = parse_config()
     if config ~= nil then
-        try_set_track(config, audio_key)
-        try_set_track(config, sub_key)
+        local available_tracks = get_number_of_tracks()
+        try_set_track(config, audio_key, available_tracks.audio)
+        try_set_track(config, sub_key, available_tracks.sub)
     end
 end
 
@@ -67,10 +68,15 @@ end
 -- silently fails if provided track is invalid
 -- TODO: consider returning some kind of error code to be verified by the caller,
 --   which may do something in that case (eg. showing error message on the OSD)
-function try_set_track(config_table, key)
+function try_set_track(config_table, key, tracks_present)
     local property = get_mpv_property_name(key)
     if config_table[key] then
-        mp.set_property(property, config_table[key])
+        local value_to_set = config_table[key]
+        -- prevents switching to tracks with numbers higher than available in the file
+        -- because overshoots like this turn audio/subtitles off
+        if value_to_set == "no" or tonumber(value_to_set) <= tracks_present then
+            mp.set_property(property, value_to_set)
+        end
     end
 end
 
@@ -83,6 +89,21 @@ function get_mpv_property_name(key)
     else
         return "sid"
     end
+end
+
+-- returns number of audio and sub tracks present in the file
+function get_number_of_tracks()
+    local result = { audio = 0, sub = 0 }
+    local tracks_count = tonumber(mp.get_property("track-list/count"))
+    for i = 0, tracks_count - 1 do
+        local kind = mp.get_property("track-list/" .. i .. "/type")
+        if kind == "audio" then
+            result.audio = result.audio + 1
+        elseif kind == "sub" then
+            result.sub = result.sub + 1
+        end
+    end
+    return result
 end
 
 mp.register_event("file-loaded", on_load)
