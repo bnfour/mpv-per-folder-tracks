@@ -20,6 +20,8 @@ local file_name = ".mpv" -- relative path by default
 local audio_key = "AUDIO"
 local sub_key = "SUB"
 
+local script_name = mp.get_script_name()
+
 -- tries to parse the configuration file:
 -- if file does not exist, returns nil
 -- else returns a table from every "[key][space][value]" pairs found in file
@@ -69,7 +71,7 @@ local function try_set_property(property, value, maximum)
             return true
         -- or skip it and warn the user
         else
-            require 'mp.msg'.warn("Skipping", property, "value", value, "(there are", maximum, "total tracks in the file, others in the folder have more?)")
+            require 'mp.msg'.warn("Skipping", property, "value", value, "(there are", maximum, "total tracks in the file, not a number or others in the folder have more?)")
             return false
         end
     end
@@ -95,8 +97,11 @@ local function set_tracks_from_file(_)
     local config = parse_config()
     if config ~= nil then
         local available_tracks = get_number_of_tracks()
-        try_set_property("aid", config[audio_key], available_tracks.audio)
-        try_set_property("sid", config[sub_key], available_tracks.sub)
+        local audio_ok = try_set_property("aid", config[audio_key], available_tracks.audio)
+        local subs_ok = try_set_property("sid", config[sub_key], available_tracks.sub)
+        if not (audio_ok and subs_ok) then
+            mp.osd_message(string.format("[%s] Error setting track(s), check the console for details", script_name))
+        end
     end
 end
 
@@ -108,9 +113,9 @@ local function store_current_tracks_to_file(_)
         f:write(string.format("%s %s\n", audio_key, mp.get_property("aid")))
         f:write(string.format("%s %s\n", sub_key, mp.get_property("sid")))
         f:close()
-        mp.osd_message("Stored audio+sub track selection")
+        mp.osd_message(string.format("[%s] Stored audio+sub track selection", script_name))
     else
-        mp.osd_message("Error writing file!")
+        mp.osd_message(string.format("[%s] Error writing file", script_name))
     end
 
 end
