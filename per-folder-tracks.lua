@@ -10,11 +10,13 @@
 ]]
 
 -- configuration
+
 local hotkey = "y" -- can also be overridden via mpv's own keybind settings
 local file_name = ".mpv" -- relative path by default
 
 -- settings definition
 -- if changing, please note that spaces in these will break the very "sophisticated" parsing logic
+
 local audio_key = "AUDIO"
 local sub_key = "SUB"
 
@@ -69,7 +71,7 @@ local function get_number_of_tracks()
 end
 
 -- load event handler: load and apply settings from file, if available
-local function on_load(_)
+local function set_tracks_from_file(_)
     local config = parse_config()
     if config ~= nil then
         local available_tracks = get_number_of_tracks()
@@ -80,7 +82,7 @@ end
 
 -- keypress event handler: store current audio and sub track indices to a configured file
 -- overwrites existing file
-local function on_keypress(_)
+local function store_current_tracks_to_file(_)
     local f = io.open(file_name, "w")
     if f ~= nil then
         f:write(string.format("%s %s\n", audio_key, mp.get_property("aid")))
@@ -93,5 +95,5 @@ local function on_keypress(_)
 
 end
 
-mp.register_event("file-loaded", on_load)
-mp.add_key_binding(hotkey, "store-current-tracks", on_keypress)
+mp.register_event("file-loaded", set_tracks_from_file)
+mp.add_key_binding(hotkey, "store-current-tracks", store_current_tracks_to_file)
