@@ -49,7 +49,7 @@ local function try_set_property(property, value, maximum)
     if property ~= nil and value ~= nil then
         -- prevents switching to tracks with numbers higher than available in the file
         -- because overshoots like this turn audio/subtitles off
-        if value == "no" or tonumber(value) <= maximum then
+        if (mp.get_property(property) ~= value) and (value == "no" or tonumber(value) <= maximum) then
             mp.set_property(property, value)
         end
     end
