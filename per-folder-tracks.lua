@@ -4,12 +4,13 @@
     Also provides a hotkey to create the configuration file with currently selected tracks.
 
     See https://github.com/bnfour/mpv-per-folder-tracks
+    Available under the terms of the MIT license.
 
-    bnfour, October--November 2022
+    bnfour, October–November 2022, October 2025
 ]]
 
 -- configuration
-local hotkey = "y"
+local hotkey = "y" -- can also be overridden via mpv's own keybind settings
 local file_name = ".mpv" -- relative path by default
 
 -- settings definition
@@ -68,7 +69,7 @@ local function get_number_of_tracks()
 end
 
 -- load event handler: load and apply settings from file, if available
-local function on_load(event)
+local function on_load(_)
     local config = parse_config()
     if config ~= nil then
         local available_tracks = get_number_of_tracks()
@@ -79,7 +80,7 @@ end
 
 -- keypress event handler: store current audio and sub track indices to a configured file
 -- overwrites existing file
-local function on_keypress(event)
+local function on_keypress(_)
     local f = io.open(file_name, "w")
     if f ~= nil then
         f:write(string.format("%s %s\n", audio_key, mp.get_property("aid")))
@@ -93,4 +94,4 @@ local function on_keypress(event)
 end
 
 mp.register_event("file-loaded", on_load)
-mp.add_key_binding(hotkey, on_keypress)
+mp.add_key_binding(hotkey, "store-current-tracks", on_keypress)
