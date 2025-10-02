@@ -27,30 +27,50 @@ local sub_key = "SUB"
 local function parse_config()
     local file = io.open(file_name, "r")
     if file ~= nil then
-        local parsed_keyvalues = {}
+        local parsed = {}
         local line = file:read("*line")
         while line do
             for k, v in string.gmatch(line, "(%S+)%s+(%S+)") do
-                parsed_keyvalues[k] = v
+                parsed[k] = v
             end
             line = file:read("*line")
         end
         file:close()
-        return parsed_keyvalues
+        return parsed
     else
         return nil
     end
 end
 
+-- returns false if provided string value cannot be parsed as a number
+-- maximum is assumed to be a number
+local function is_number_less_or_equal_than(value, maximum)
+    local n = tonumber(value)
+    if n ~= nil then
+        return n <= maximum
+    else
+        return false
+    end
+end
+
 -- silently does nothing if provided track is invalid
--- TODO: consider returning some kind of error code to be verified by the caller,
---   which may do something in that case (eg. showing error message on the OSD)
+-- returns a boolean: false if unable to set the value (format or track count issues),
+-- true if everything went ok, even if the function did not change the track id
 local function try_set_property(property, value, maximum)
     if property ~= nil and value ~= nil then
-        -- prevents switching to tracks with numbers higher than available in the file
-        -- because overshoots like this turn audio/subtitles off
-        if (mp.get_property(property) ~= value) and (value == "no" or tonumber(value) <= maximum) then
+        -- do nothing successfully if the property already has the value to set
+        if mp.get_property(property) == value
+        then
+            return true
+        end
+        -- if the value to set seems legit, set the property
+        if value == "no" or is_number_less_or_equal_than(value, maximum) then
             mp.set_property(property, value)
+            return true
+        -- or skip it and warn the user
+        else
+            require 'mp.msg'.warn("Skipping", property, "value", value, "(there are", maximum, "total tracks in the file, others in the folder have more?)")
+            return false
         end
     end
 end
